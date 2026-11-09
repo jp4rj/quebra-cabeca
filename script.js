@@ -1,232 +1,362 @@
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+// ============================================================
+// Quebra-Cabeça — versão corrigida (background em px)
+// ============================================================
 
-body {
-  font-family: system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg, #1e1e2e 0%, #2a1e3e 100%);
-  color: #eee;
-  text-align: center;
-  margin: 0;
-  padding: 16px;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+const fileInput   = document.getElementById('fileInput');
+const gameArea    = document.getElementById('gameArea');
+const intro       = document.getElementById('intro');
+const board       = document.getElementById('board');
+const shuffleBtn  = document.getElementById('shuffleBtn');
+const resetBtn    = document.getElementById('resetBtn');
+const peekBtn     = document.getElementById('peekBtn');
+const timerEl     = document.getElementById('timer');
+const movesEl     = document.getElementById('moves');
+const pieceCountEl= document.getElementById('pieceCount');
+
+const winModal    = document.getElementById('winModal');
+const winTimeEl   = document.getElementById('winTime');
+const winMovesEl  = document.getElementById('winMoves');
+const confettiBox = document.getElementById('confetti');
+const shareBtn    = document.getElementById('shareBtn');
+const playAgainBtn= document.getElementById('playAgainBtn');
+const newPhotoBtn = document.getElementById('newPhotoBtn');
+
+// ===== Estado =====
+let SIZE = 4;
+let tiles = [];
+let selectedIndex = null;
+let dragFrom = null;
+let touchFrom = null;
+let imageUrl = null;
+let imageAspect = 3 / 4;   // proporção real da imagem carregada
+let moves = 0;
+let timer = null;
+let seconds = 0;
+let gameActive = false;
+
+// ===== Escolha de tamanho =====
+document.querySelectorAll('.size-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    SIZE = parseInt(btn.dataset.size, 10);
+  });
+});
+
+// ===== Carregar foto =====
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const img = new Image();
+  img.onload = () => {
+    // Aviso se não for retrato
+    if (img.naturalWidth >= img.naturalHeight) {
+      if (!confirm('A foto não está no modo retrato. Continuar mesmo assim?')) {
+        fileInput.value = '';
+        return;
+      }
+    }
+
+    imageUrl = img.src;
+    imageAspect = img.naturalWidth / img.naturalHeight;
+
+    startGame();
+  };
+  img.src = URL.createObjectURL(file);
+});
+
+// ===== Iniciar jogo =====
+function startGame() {
+  intro.classList.add('hidden');
+  gameArea.classList.remove('hidden');
+  gameActive = true;
+  resetStats();
+  buildBoard();
+  shuffle();
+  startTimer();
+
+  // Espera o layout estabilizar antes de renderizar as posições
+  requestAnimationFrame(() => {
+    applyAspect();
+    render();
+  });
 }
 
-header { margin-bottom: 16px; }
-h1 { margin: 0 0 4px; font-size: 1.6rem; }
-.subtitle { margin: 0; color: #aaa; font-size: 0.9rem; }
-
-.hidden { display: none !important; }
-
-/* ===== Tela inicial ===== */
-#intro {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  align-items: center;
-  margin-top: 24px;
+function applyAspect() {
+  // Ajusta o tabuleiro para a proporção real da imagem
+  board.style.aspectRatio = `${imageAspect}`;
 }
 
-.size-picker { text-align: center; }
-.size-picker label { display: block; margin-bottom: 8px; color: #aaa; }
-
-.size-buttons { display: flex; gap: 8px; }
-
-.size-btn {
-  padding: 8px 16px;
-  background: #2a2a3e;
-  color: #eee;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s;
-}
-.size-btn:hover { background: #3a3a5e; }
-.size-btn.active {
-  background: #7c5cff;
-  border-color: #a890ff;
+function resetStats() {
+  moves = 0;
+  seconds = 0;
+  movesEl.textContent = '0';
+  timerEl.textContent = '00:00';
+  pieceCountEl.textContent = SIZE * SIZE;
 }
 
-.upload-btn {
-  display: inline-block;
-  padding: 14px 28px;
-  background: #7c5cff;
-  color: #fff;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 1.1rem;
-  font-weight: 600;
-  box-shadow: 0 4px 16px rgba(124, 92, 255, 0.4);
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.upload-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(124, 92, 255, 0.6);
+function startTimer() {
+  stopTimer();
+  timer = setInterval(() => {
+    seconds++;
+    timerEl.textContent = formatTime(seconds);
+  }, 1000);
 }
 
-/* ===== Área do jogo ===== */
-#gameArea { width: 100%; max-width: 500px; }
-
-.stats {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.stat {
-  background: rgba(255,255,255,0.05);
-  padding: 8px 14px;
-  border-radius: 10px;
-  min-width: 90px;
-}
-.stat-label { display: block; font-size: 0.75rem; color: #aaa; }
-.stat-value { display: block; font-size: 1.1rem; font-weight: bold; }
-
-/* ===== Tabuleiro ===== */
-#board {
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  margin: 0 auto 16px;
-  background: #000;
-  padding: 3px;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  position: relative;
-  user-select: none;
+function stopTimer() {
+  if (timer) { clearInterval(timer); timer = null; }
 }
 
-.tile {
-  /* background-size e background-position são controlados pelo JS */
-  background-repeat: no-repeat;
-  cursor: pointer;
-  border-radius: 2px;
-  transition: outline 0.1s, transform 0.1s;
-  position: relative;
-  background-color: #111;
+function formatTime(s) {
+  const m = Math.floor(s / 60).toString().padStart(2, '0');
+  const sec = (s % 60).toString().padStart(2, '0');
+  return `${m}:${sec}`;
 }
 
-.tile.selected {
-  outline: 3px solid #ffd166;
-  z-index: 2;
-  transform: scale(0.95);
-}
+// ===== Construir tabuleiro =====
+function buildBoard() {
+  board.innerHTML = '';
+  tiles = Array.from({ length: SIZE * SIZE }, (_, i) => i);
 
-.tile.drag-over {
-  outline: 3px dashed #7cf29c;
-  z-index: 2;
-}
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    const div = document.createElement('div');
+    div.className = 'tile';
+    div.draggable = true;
+    div.dataset.index = i;
 
-.tile.dragging { opacity: 0.4; }
+    // Clique
+    div.addEventListener('click', () => onTileClick(i));
 
-/* ===== Controles ===== */
-.controls {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
+    // Drag & drop (desktop)
+    div.addEventListener('dragstart', (e) => {
+      dragFrom = i;
+      div.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    div.addEventListener('dragend', () => {
+      div.classList.remove('dragging');
+      dragFrom = null;
+    });
+    div.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      div.classList.add('drag-over');
+    });
+    div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+    div.addEventListener('drop', (e) => {
+      e.preventDefault();
+      div.classList.remove('drag-over');
+      if (dragFrom !== null && dragFrom !== i) {
+        swapTiles(dragFrom, i);
+      }
+    });
 
-button {
-  padding: 10px 18px;
-  background: #7c5cff;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 600;
-  transition: transform 0.1s, background 0.15s;
-}
-button:hover { background: #6a4ce0; }
-button:active { transform: scale(0.96); }
+    // Toque (mobile)
+    div.addEventListener('touchstart', handleTouchStart, { passive: true });
+    div.addEventListener('touchmove',  handleTouchMove,  { passive: false });
+    div.addEventListener('touchend',   handleTouchEnd);
 
-/* ===== Modal de vitória ===== */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  animation: fadeIn 0.3s;
-  padding: 16px;
-}
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-.modal-content {
-  background: linear-gradient(135deg, #2a1e3e, #1e1e2e);
-  padding: 28px;
-  border-radius: 16px;
-  max-width: 400px;
-  width: 100%;
-  position: relative;
-  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-  border: 1px solid rgba(255,255,255,0.1);
-}
-
-@keyframes popIn {
-  from { transform: scale(0.5); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
-}
-
-.modal-content h2 {
-  font-size: 2rem;
-  margin: 0 0 8px;
-  background: linear-gradient(90deg, #ffd166, #ff6b9d, #7c5cff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.win-stats {
-  margin: 16px 0;
-  padding: 12px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 10px;
-}
-.win-stats p { margin: 4px 0; font-size: 1rem; }
-
-.win-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 16px;
-}
-.win-actions button { width: 100%; }
-
-/* ===== Confetti ===== */
-.confetti-container {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  border-radius: 16px;
-}
-
-.confetti-piece {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  top: -20px;
-  animation: confettiFall linear forwards;
-}
-
-@keyframes confettiFall {
-  to {
-    transform: translateY(500px) rotate(720deg);
-    opacity: 0;
+    board.appendChild(div);
   }
 }
 
-/* ===== PWA standalone ===== */
-@media (display-mode: standalone) {
-  body { padding-top: env(safe-area-inset-top, 16px); }
+// ===== Touch handlers (mobile) =====
+function handleTouchStart(e) {
+  touchFrom = parseInt(e.currentTarget.dataset.index, 10);
+}
+function handleTouchMove(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (el && el.classList.contains('tile')) {
+    document.querySelectorAll('.tile.drag-over').forEach(t => t.classList.remove('drag-over'));
+    el.classList.add('drag-over');
+  }
+}
+function handleTouchEnd(e) {
+  const touch = e.changedTouches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  document.querySelectorAll('.tile.drag-over').forEach(t => t.classList.remove('drag-over'));
+  if (el && el.classList.contains('tile')) {
+    const to = parseInt(el.dataset.index, 10);
+    if (touchFrom !== null && touchFrom !== to) swapTiles(touchFrom, to);
+  }
+  touchFrom = null;
+}
+
+// ===== Render (CORRIGIDO: px em vez de %) =====
+function render() {
+  if (!imageUrl) return;
+
+  const boardRect = board.getBoundingClientRect();
+  if (boardRect.width === 0 || boardRect.height === 0) return; // layout ainda não pronto
+
+  // Padding interno do board = 3px (definido no CSS) + gap entre tiles = 2px
+  const boardPadding = 3;
+  const gap = 2;
+
+  const innerW = boardRect.width  - boardPadding * 2 - gap * (SIZE - 1);
+  const innerH = boardRect.height - boardPadding * 2 - gap * (SIZE - 1);
+  const tileW = innerW / SIZE;
+  const tileH = innerH / SIZE;
+
+  [...board.children].forEach((el, i) => {
+    const pieceId = tiles[i];
+    const row = Math.floor(pieceId / SIZE);
+    const col = pieceId % SIZE;
+
+    el.style.backgroundImage = `url(${imageUrl})`;
+    // A imagem inteira ocupa SIZE x SIZE tiles
+    el.style.backgroundSize = `${tileW * SIZE}px ${tileH * SIZE}px`;
+    // Desloca para mostrar o pedaço correto
+    el.style.backgroundPosition = `${-col * tileW}px ${-row * tileH}px`;
+
+    el.classList.toggle('selected', i === selectedIndex);
+  });
+}
+
+// ===== Interação =====
+function onTileClick(index) {
+  if (!gameActive) return;
+  if (selectedIndex === null) {
+    selectedIndex = index;
+    render();
+  } else if (selectedIndex === index) {
+    selectedIndex = null;
+    render();
+  } else {
+    swapTiles(selectedIndex, index);
+  }
+}
+
+function swapTiles(a, b) {
+  if (a === b) return;
+  [tiles[a], tiles[b]] = [tiles[b], tiles[a]];
+  selectedIndex = null;
+  moves++;
+  movesEl.textContent = moves;
+  render();
+  if (isSolved()) onWin();
+}
+
+// ===== Embaralhar =====
+function shuffle() {
+  do {
+    for (let i = tiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+    }
+  } while (isSolved());
+  selectedIndex = null;
+  render();
+}
+
+// ===== Verificar solução =====
+function isSolved() {
+  return tiles.every((v, i) => v === i);
+}
+
+// ===== Vitória =====
+function onWin() {
+  gameActive = false;
+  stopTimer();
+
+  winTimeEl.textContent = formatTime(seconds);
+  winMovesEl.textContent = moves;
+  winModal.classList.remove('hidden');
+  launchConfetti();
+
+  // Salva recorde
+  const key = `best_${SIZE}x${SIZE}`;
+  const best = parseInt(localStorage.getItem(key) || '999999', 10);
+  if (moves < best) localStorage.setItem(key, moves);
+
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+}
+
+function launchConfetti() {
+  confettiBox.innerHTML = '';
+  const colors = ['#ffd166', '#ff6b9d', '#7c5cff', '#7cf29c', '#5cc8ff'];
+  for (let i = 0; i < 60; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    piece.style.animationDelay = (Math.random() * 0.5) + 's';
+    piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+    confettiBox.appendChild(piece);
+  }
+}
+
+// ===== Botões =====
+shuffleBtn.addEventListener('click', () => {
+  if (!gameActive) return;
+  shuffle();
+  resetStats();
+  startTimer();
+});
+
+resetBtn.addEventListener('click', () => {
+  stopTimer();
+  gameActive = false;
+  gameArea.classList.add('hidden');
+  intro.classList.remove('hidden');
+  fileInput.value = '';
+  imageUrl = null;
+  tiles = [];
+  board.innerHTML = '';
+});
+
+// Peek: mostra a imagem inteira por 2s e restaura
+peekBtn.addEventListener('click', () => {
+  if (!gameActive) return;
+  [...board.children].forEach((el) => {
+    el.style.backgroundSize = '100% 100%';
+    el.style.backgroundPosition = 'center';
+  });
+  setTimeout(() => render(), 2000);
+});
+
+// ===== Modal de vitória =====
+playAgainBtn.addEventListener('click', () => {
+  winModal.classList.add('hidden');
+  startGame();
+});
+
+newPhotoBtn.addEventListener('click', () => {
+  winModal.classList.add('hidden');
+  resetBtn.click();
+});
+
+// Compartilhar
+shareBtn.addEventListener('click', async () => {
+  const text = `🧩 Resolvi um quebra-cabeça ${SIZE}×${SIZE} em ${formatTime(seconds)} com ${moves} movimentos!`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Quebra-Cabeça', text, url: location.href });
+    } catch (_) {}
+  } else {
+    try {
+      await navigator.clipboard.writeText(text + ' ' + location.href);
+      shareBtn.textContent = '✅ Copiado!';
+      setTimeout(() => (shareBtn.textContent = '📤 Compartilhar'), 1500);
+    } catch (_) {
+      alert(text);
+    }
+  }
+});
+
+// ===== Re-render ao redimensionar / girar =====
+window.addEventListener('resize', () => {
+  if (gameActive) render();
+});
+
+// ===== PWA =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
 }
