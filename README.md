@@ -1,12 +1,18 @@
-# 🧩 Quebra-Cabeça 4x4
+# 🧩 Quebra-Cabeça
 
-App web que recorta uma foto em 16 peças e embaralha para o usuário remontar.
+App web que recorta uma foto em N peças e embaralha para o usuário remontar.
 
-## Como usar
-1. Abra o app
-2. Escolha uma foto (ideal: modo retrato)
-3. Clique em duas peças para trocá-las de lugar
-4. Remonte a imagem original!
+## Recursos
+- Recorte automático da foto escolhida (3×3, 4×4 ou 5×5)
+- Aviso se a foto não estiver no modo retrato
+- Arrastar e soltar (desktop e celular)
+- Cronômetro + contador de movimentos
+- Botão "ver original" por 2s
+- Animação de confete ao resolver 🎉
+- PWA: instalável e funciona offline
+- Compartilhamento via Web Share API
 
-## Tecnologias
-HTML, CSS e JavaScript puro (canvas para recorte). Sem backend.
+## Rodar local
+Basta abrir `index.html` — ou servir com:
+```bash
+python3 -m http.server 8000

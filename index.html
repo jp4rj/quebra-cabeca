@@ -2,24 +2,76 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quebra-Cabeça 4x4</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1e1e2e" />
+  <title>🧩 Quebra-Cabeça</title>
+  <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>🧩 Quebra-Cabeça 4x4</h1>
+  <header>
+    <h1>🧩 Quebra-Cabeça</h1>
+    <p class="subtitle">Escolha uma foto e remonte o quebra-cabeça!</p>
+  </header>
 
-  <div id="intro">
-    <p>Escolha uma foto <strong>no modo retrato</strong> da sua galeria. Ela será recortada em 16 peças.</p>
-    <input type="file" id="fileInput" accept="image/*" />
-  </div>
+  <!-- Tela inicial -->
+  <section id="intro">
+    <div class="size-picker">
+      <label>Tamanho:</label>
+      <div class="size-buttons">
+        <button class="size-btn" data-size="3">3×3</button>
+        <button class="size-btn active" data-size="4">4×4</button>
+        <button class="size-btn" data-size="5">5×5</button>
+      </div>
+    </div>
 
-  <div id="gameArea" class="hidden">
+    <label for="fileInput" class="upload-btn">
+      📷 Escolher foto (modo retrato)
+    </label>
+    <input type="file" id="fileInput" accept="image/*" hidden />
+  </section>
+
+  <!-- Área do jogo -->
+  <section id="gameArea" class="hidden">
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">⏱️ Tempo</span>
+        <span class="stat-value" id="timer">00:00</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">👆 Movimentos</span>
+        <span class="stat-value" id="moves">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">🧩 Peças</span>
+        <span class="stat-value" id="pieceCount">16</span>
+      </div>
+    </div>
+
     <div id="board"></div>
+
     <div class="controls">
-      <button id="shuffleBtn">Embaralhar</button>
-      <button id="resetBtn">Nova foto</button>
-      <span id="status"></span>
+      <button id="peekBtn" title="Ver original por 2s">👁️ Ver original</button>
+      <button id="shuffleBtn">🔀 Embaralhar</button>
+      <button id="resetBtn">🔄 Nova foto</button>
+    </div>
+  </section>
+
+  <!-- Modal de vitória -->
+  <div id="winModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="confetti-container" id="confetti"></div>
+      <h2>🎉 Parabéns!</h2>
+      <p>Você resolveu o quebra-cabeça!</p>
+      <div class="win-stats">
+        <p>⏱️ Tempo: <strong id="winTime">00:00</strong></p>
+        <p>👆 Movimentos: <strong id="winMoves">0</strong></p>
+      </div>
+      <div class="win-actions">
+        <button id="shareBtn">📤 Compartilhar</button>
+        <button id="playAgainBtn">🔁 Jogar de novo</button>
+        <button id="newPhotoBtn">🖼️ Nova foto</button>
+      </div>
     </div>
   </div>
 
