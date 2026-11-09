@@ -1,5 +1,5 @@
 // ============================================================
-// Quebra-Cabeça 4x4 — com drag&drop, cronômetro, PWA, confetti
+// Quebra-Cabeça — versão corrigida (background em px)
 // ============================================================
 
 const fileInput   = document.getElementById('fileInput');
@@ -26,7 +26,9 @@ let SIZE = 4;
 let tiles = [];
 let selectedIndex = null;
 let dragFrom = null;
+let touchFrom = null;
 let imageUrl = null;
+let imageAspect = 3 / 4;   // proporção real da imagem carregada
 let moves = 0;
 let timer = null;
 let seconds = 0;
@@ -48,7 +50,7 @@ fileInput.addEventListener('change', (e) => {
 
   const img = new Image();
   img.onload = () => {
-    // Melhoria 2: aviso se não for retrato
+    // Aviso se não for retrato
     if (img.naturalWidth >= img.naturalHeight) {
       if (!confirm('A foto não está no modo retrato. Continuar mesmo assim?')) {
         fileInput.value = '';
@@ -57,9 +59,7 @@ fileInput.addEventListener('change', (e) => {
     }
 
     imageUrl = img.src;
-
-    // Melhoria 1: respeitar proporção real da imagem
-    board.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+    imageAspect = img.naturalWidth / img.naturalHeight;
 
     startGame();
   };
@@ -75,6 +75,17 @@ function startGame() {
   buildBoard();
   shuffle();
   startTimer();
+
+  // Espera o layout estabilizar antes de renderizar as posições
+  requestAnimationFrame(() => {
+    applyAspect();
+    render();
+  });
+}
+
+function applyAspect() {
+  // Ajusta o tabuleiro para a proporção real da imagem
+  board.style.aspectRatio = `${imageAspect}`;
 }
 
 function resetStats() {
@@ -114,10 +125,10 @@ function buildBoard() {
     div.draggable = true;
     div.dataset.index = i;
 
-    // Clique (fallback para toque)
+    // Clique
     div.addEventListener('click', () => onTileClick(i));
 
-    // Melhoria 3: drag & drop
+    // Drag & drop (desktop)
     div.addEventListener('dragstart', (e) => {
       dragFrom = i;
       div.classList.add('dragging');
@@ -141,17 +152,16 @@ function buildBoard() {
       }
     });
 
-    // Suporte a toque (drag via touch)
+    // Toque (mobile)
     div.addEventListener('touchstart', handleTouchStart, { passive: true });
     div.addEventListener('touchmove',  handleTouchMove,  { passive: false });
     div.addEventListener('touchend',   handleTouchEnd);
 
     board.appendChild(div);
   }
-  render();
 }
 
-let touchFrom = null;
+// ===== Touch handlers (mobile) =====
 function handleTouchStart(e) {
   touchFrom = parseInt(e.currentTarget.dataset.index, 10);
 }
@@ -175,17 +185,32 @@ function handleTouchEnd(e) {
   touchFrom = null;
 }
 
-// ===== Render =====
+// ===== Render (CORRIGIDO: px em vez de %) =====
 function render() {
+  if (!imageUrl) return;
+
+  const boardRect = board.getBoundingClientRect();
+  if (boardRect.width === 0 || boardRect.height === 0) return; // layout ainda não pronto
+
+  // Padding interno do board = 3px (definido no CSS) + gap entre tiles = 2px
+  const boardPadding = 3;
+  const gap = 2;
+
+  const innerW = boardRect.width  - boardPadding * 2 - gap * (SIZE - 1);
+  const innerH = boardRect.height - boardPadding * 2 - gap * (SIZE - 1);
+  const tileW = innerW / SIZE;
+  const tileH = innerH / SIZE;
+
   [...board.children].forEach((el, i) => {
     const pieceId = tiles[i];
     const row = Math.floor(pieceId / SIZE);
     const col = pieceId % SIZE;
 
     el.style.backgroundImage = `url(${imageUrl})`;
-    el.style.backgroundSize = `${SIZE * 100}% ${SIZE * 100}%`;
-    el.style.backgroundPosition =
-      `${(col / (SIZE - 1)) * 100}% ${(row / (SIZE - 1)) * 100}%`;
+    // A imagem inteira ocupa SIZE x SIZE tiles
+    el.style.backgroundSize = `${tileW * SIZE}px ${tileH * SIZE}px`;
+    // Desloca para mostrar o pedaço correto
+    el.style.backgroundPosition = `${-col * tileW}px ${-row * tileH}px`;
 
     el.classList.toggle('selected', i === selectedIndex);
   });
@@ -237,18 +262,16 @@ function onWin() {
   gameActive = false;
   stopTimer();
 
-  // Melhoria 6: animação de parabéns
   winTimeEl.textContent = formatTime(seconds);
   winMovesEl.textContent = moves;
   winModal.classList.remove('hidden');
   launchConfetti();
 
-  // Melhoria 9: salva recorde (opcional, útil pra share)
+  // Salva recorde
   const key = `best_${SIZE}x${SIZE}`;
   const best = parseInt(localStorage.getItem(key) || '999999', 10);
   if (moves < best) localStorage.setItem(key, moves);
 
-  // Vibração se disponível
   if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
 }
 
@@ -284,20 +307,17 @@ resetBtn.addEventListener('click', () => {
   fileInput.value = '';
   imageUrl = null;
   tiles = [];
+  board.innerHTML = '';
 });
 
-// Melhoria 5: peek (ver original por 2s)
+// Peek: mostra a imagem inteira por 2s e restaura
 peekBtn.addEventListener('click', () => {
   if (!gameActive) return;
-  board.classList.add('peek');
-  [...board.children].forEach((el, i) => {
-    el.style.backgroundPosition = 'center';
+  [...board.children].forEach((el) => {
     el.style.backgroundSize = '100% 100%';
+    el.style.backgroundPosition = 'center';
   });
-  setTimeout(() => {
-    board.classList.remove('peek');
-    render();
-  }, 2000);
+  setTimeout(() => render(), 2000);
 });
 
 // ===== Modal de vitória =====
@@ -311,7 +331,7 @@ newPhotoBtn.addEventListener('click', () => {
   resetBtn.click();
 });
 
-// Melhoria 9: compartilhar
+// Compartilhar
 shareBtn.addEventListener('click', async () => {
   const text = `🧩 Resolvi um quebra-cabeça ${SIZE}×${SIZE} em ${formatTime(seconds)} com ${moves} movimentos!`;
   if (navigator.share) {
@@ -329,7 +349,12 @@ shareBtn.addEventListener('click', async () => {
   }
 });
 
-// ===== Melhoria 8: PWA =====
+// ===== Re-render ao redimensionar / girar =====
+window.addEventListener('resize', () => {
+  if (gameActive) render();
+});
+
+// ===== PWA =====
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});

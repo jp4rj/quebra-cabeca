@@ -101,12 +101,13 @@ h1 { margin: 0 0 4px; font-size: 1.6rem; }
 }
 
 .tile {
-  background-size: 100% 100%;
+  /* background-size e background-position são controlados pelo JS */
   background-repeat: no-repeat;
   cursor: pointer;
   border-radius: 2px;
   transition: outline 0.1s, transform 0.1s;
   position: relative;
+  background-color: #111;
 }
 
 .tile.selected {
@@ -121,12 +122,6 @@ h1 { margin: 0 0 4px; font-size: 1.6rem; }
 }
 
 .tile.dragging { opacity: 0.4; }
-
-/* Peek: mostra original */
-#board.peek .tile {
-  background-position: center !important;
-  background-size: 100% 100% !important;
-}
 
 /* ===== Controles ===== */
 .controls {
