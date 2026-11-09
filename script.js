@@ -1,1 +1,232 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a1e3e 100%);
+  color: #eee;
+  text-align: center;
+  margin: 0;
+  padding: 16px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header { margin-bottom: 16px; }
+h1 { margin: 0 0 4px; font-size: 1.6rem; }
+.subtitle { margin: 0; color: #aaa; font-size: 0.9rem; }
+
+.hidden { display: none !important; }
+
+/* ===== Tela inicial ===== */
+#intro {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  margin-top: 24px;
+}
+
+.size-picker { text-align: center; }
+.size-picker label { display: block; margin-bottom: 8px; color: #aaa; }
+
+.size-buttons { display: flex; gap: 8px; }
+
+.size-btn {
+  padding: 8px 16px;
+  background: #2a2a3e;
+  color: #eee;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+.size-btn:hover { background: #3a3a5e; }
+.size-btn.active {
+  background: #7c5cff;
+  border-color: #a890ff;
+}
+
+.upload-btn {
+  display: inline-block;
+  padding: 14px 28px;
+  background: #7c5cff;
+  color: #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(124, 92, 255, 0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.upload-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124, 92, 255, 0.6);
+}
+
+/* ===== Área do jogo ===== */
+#gameArea { width: 100%; max-width: 500px; }
+
+.stats {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.stat {
+  background: rgba(255,255,255,0.05);
+  padding: 8px 14px;
+  border-radius: 10px;
+  min-width: 90px;
+}
+.stat-label { display: block; font-size: 0.75rem; color: #aaa; }
+.stat-value { display: block; font-size: 1.1rem; font-weight: bold; }
+
+/* ===== Tabuleiro ===== */
+#board {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  margin: 0 auto 16px;
+  background: #000;
+  padding: 3px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  position: relative;
+  user-select: none;
+}
+
+.tile {
+  /* background-size e background-position são controlados pelo JS */
+  background-repeat: no-repeat;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: outline 0.1s, transform 0.1s;
+  position: relative;
+  background-color: #111;
+}
+
+.tile.selected {
+  outline: 3px solid #ffd166;
+  z-index: 2;
+  transform: scale(0.95);
+}
+
+.tile.drag-over {
+  outline: 3px dashed #7cf29c;
+  z-index: 2;
+}
+
+.tile.dragging { opacity: 0.4; }
+
+/* ===== Controles ===== */
+.controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 10px 18px;
+  background: #7c5cff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: transform 0.1s, background 0.15s;
+}
+button:hover { background: #6a4ce0; }
+button:active { transform: scale(0.96); }
+
+/* ===== Modal de vitória ===== */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.3s;
+  padding: 16px;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-content {
+  background: linear-gradient(135deg, #2a1e3e, #1e1e2e);
+  padding: 28px;
+  border-radius: 16px;
+  max-width: 400px;
+  width: 100%;
+  position: relative;
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+@keyframes popIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.modal-content h2 {
+  font-size: 2rem;
+  margin: 0 0 8px;
+  background: linear-gradient(90deg, #ffd166, #ff6b9d, #7c5cff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.win-stats {
+  margin: 16px 0;
+  padding: 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+}
+.win-stats p { margin: 4px 0; font-size: 1rem; }
+
+.win-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+.win-actions button { width: 100%; }
+
+/* ===== Confetti ===== */
+.confetti-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: -20px;
+  animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+  to {
+    transform: translateY(500px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* ===== PWA standalone ===== */
+@media (display-mode: standalone) {
+  body { padding-top: env(safe-area-inset-top, 16px); }
+}
