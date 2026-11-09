@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quebra-Cabeça 4x4</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>🧩 Quebra-Cabeça 4x4</h1>
+
+  <div id="intro">
+    <p>Escolha uma foto <strong>no modo retrato</strong> da sua galeria. Ela será recortada em 16 peças.</p>
+    <input type="file" id="fileInput" accept="image/*" />
+  </div>
+
+  <div id="gameArea" class="hidden">
+    <div id="board"></div>
+    <div class="controls">
+      <button id="shuffleBtn">Embaralhar</button>
+      <button id="resetBtn">Nova foto</button>
+      <span id="status"></span>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
