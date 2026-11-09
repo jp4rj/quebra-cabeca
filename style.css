@@ -38,7 +38,7 @@ input[type="file"] {
 }
 
 .tile {
-  background-size: 400% 400%; /* 4x4 */
+  background-size: 400% 400%;   /* 4x4 → 400% */
   background-repeat: no-repeat;
   cursor: pointer;
   border-radius: 2px;
