@@ -116,8 +116,15 @@ function formatTime(s) {
 
 // ===== Construir tabuleiro =====
 function buildBoard() {
+  // 🔑 define a grade dinamicamente conforme SIZE
+  board.style.gridTemplateColumns = `repeat(${SIZE}, 1fr)`;
+  board.style.gridTemplateRows    = `repeat(${SIZE}, 1fr)`;
+
   board.innerHTML = '';
   tiles = Array.from({ length: SIZE * SIZE }, (_, i) => i);
+
+  // ... resto igual
+}
 
   for (let i = 0; i < SIZE * SIZE; i++) {
     const div = document.createElement('div');

@@ -88,6 +88,8 @@ h1 { margin: 0 0 4px; font-size: 1.6rem; }
 /* ===== Tabuleiro ===== */
 #board {
   display: grid;
+  grid-template-columns: repeat(4, 1fr);   /* fallback; JS sobrescreve */
+  grid-template-rows: repeat(4, 1fr);      /* fallback; JS sobrescreve */
   gap: 2px;
   width: 100%;
   aspect-ratio: 3 / 4;
@@ -99,8 +101,6 @@ h1 { margin: 0 0 4px; font-size: 1.6rem; }
   position: relative;
   user-select: none;
 }
-
-.tile {
   /* background-size e background-position são controlados pelo JS */
   background-repeat: no-repeat;
   cursor: pointer;
