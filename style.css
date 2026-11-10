@@ -339,12 +339,39 @@ button:active { transform: scale(0.96); }
   border-radius: 4px;
 }
 
-/* ===== Peças na posição correta se "grudam" ===== */
+/* ===== Peças na posição correta: visual de "bloco contínuo" ===== */
 .tile.placed {
   border-radius: 0;
-  box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.3);
+  /* contorno dourado sutil para indicar "esta peça está no lugar" */
+  outline: 1px solid rgba(255, 209, 102, 0.35);
+  outline-offset: -1px;
+  box-shadow: none;
+  /* garante que a peça possa "transbordar" o gap */
+  position: relative;
+  z-index: 1;
 }
 
+/* Quando a peça correta tem uma vizinha correta IMEDIATAMENTE DEPOIS
+   no DOM (o que no grid significa: à direita ou abaixo), estica em
+   direção a ela, cobrindo o gap de 2px. */
+.tile.placed:has(+ .tile.placed) {
+  margin-right: -2px;
+  margin-bottom: -2px;
+  border-right: none;
+  border-bottom: none;
+  outline: none;                /* remove o contorno dourado no lado grudado */
+}
+
+/* Se a peça correta tem uma vizinha correta IMEDIATAMENTE ANTES
+   (à esquerda ou acima), não precisa fazer nada — a de trás já
+   esticou. Só removemos o contorno duplicado. */
+.tile.placed + .tile.placed {
+  outline: none;
+}
+
+/* A peça correta que NÃO tem vizinha correta depois mantém o contorno
+   dourado só no lado "solto". Para simplificar, deixamos o contorno
+   completo, mas sem o lado grudado (regra acima já remove). */
 .tile.placed.correct {
-  box-shadow: none;
+  outline: none;                /* durante o brilho, sem contorno extra */
 }
