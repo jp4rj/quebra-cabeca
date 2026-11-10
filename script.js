@@ -1,5 +1,6 @@
 // ============================================================
-// Quebra-Cabeça — versão consolidada (grid dinâmico + px)
+// Quebra-Cabeça — com som, brilho dourado, peças que grudam,
+// modal transparente, galeria local e PWA.
 // ============================================================
 
 const fileInput   = document.getElementById('fileInput');
@@ -12,6 +13,8 @@ const peekBtn     = document.getElementById('peekBtn');
 const timerEl     = document.getElementById('timer');
 const movesEl     = document.getElementById('moves');
 const pieceCountEl= document.getElementById('pieceCount');
+const soundToggle = document.getElementById('soundToggle');
+const gallery     = document.getElementById('gallery');
 
 const winModal    = document.getElementById('winModal');
 const winTimeEl   = document.getElementById('winTime');
@@ -20,8 +23,6 @@ const confettiBox = document.getElementById('confetti');
 const shareBtn    = document.getElementById('shareBtn');
 const playAgainBtn= document.getElementById('playAgainBtn');
 const newPhotoBtn = document.getElementById('newPhotoBtn');
-const gallery     = document.getElementById('gallery');
-const soundToggle = document.getElementById('soundToggle');
 
 // ===== Estado =====
 let SIZE = 4;
@@ -38,7 +39,102 @@ let gameActive = false;
 let soundOn = true;
 let audioCtx = null;
 
-// ===== Escolha de tamanho =====
+// ============================================================
+// 🔊 SOM (Web Audio API — sem arquivo externo)
+// ============================================================
+function initAudio() {
+  if (audioCtx) return audioCtx;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (_) { audioCtx = null; }
+  return audioCtx;
+}
+
+function playCardSound() {
+  if (!soundOn) return;
+  const ctx = initAudio();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const now = ctx.currentTime;
+
+  const bufferSize = Math.floor(ctx.sampleRate * 0.08);
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+
+  const noiseFilter = ctx.createBiquadFilter();
+  noiseFilter.type = 'highpass';
+  noiseFilter.frequency.value = 1200;
+
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(0.25, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+  noise.connect(noiseFilter).connect(noiseGain).connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + 0.08);
+
+  const osc = ctx.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(900, now);
+  osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+
+  const oscGain = ctx.createGain();
+  oscGain.gain.setValueAtTime(0.08, now);
+  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+  osc.connect(oscGain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.05);
+}
+
+function playVictorySound() {
+  if (!soundOn) return;
+  const ctx = initAudio();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const now = ctx.currentTime;
+  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+  notes.forEach((freq, i) => {
+    const t = now + i * 0.12;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.15, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.3);
+  });
+}
+
+// Botão de som
+if (soundToggle) {
+  soundToggle.addEventListener('click', () => {
+    soundOn = !soundOn;
+    soundToggle.textContent = soundOn ? '🔊' : '🔇';
+    soundToggle.classList.toggle('muted', !soundOn);
+    if (soundOn) playCardSound();
+  });
+}
+
+// Desbloqueia o áudio no primeiro clique em qualquer lugar
+document.addEventListener('pointerdown', function unlock() {
+  initAudio();
+  document.removeEventListener('pointerdown', unlock);
+}, { once: true });
+
+// ============================================================
+// Escolha de tamanho
+// ============================================================
 document.querySelectorAll('.size-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
@@ -47,7 +143,73 @@ document.querySelectorAll('.size-btn').forEach(btn => {
   });
 });
 
-// ===== Carregar foto =====
+// ============================================================
+// Galeria
+// ============================================================
+function buildGallery() {
+  if (!gallery) return;
+  if (typeof GALLERY_CATEGORIES === 'undefined') return;
+  gallery.innerHTML = '';
+
+  Object.entries(GALLERY_CATEGORIES).forEach(([key, cat]) => {
+    if (!cat || !Array.isArray(cat.images) || cat.images.length === 0) return;
+
+    const section = document.createElement('div');
+    section.className = 'gallery-category';
+
+    const title = document.createElement('h3');
+    title.className = 'gallery-title';
+    title.textContent = cat.title || key;
+    section.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'gallery-grid';
+
+    cat.images.forEach(img => {
+      if (!img || !img.url) return;
+      const div = document.createElement('div');
+      div.className = 'gallery-item';
+      div.dataset.name = img.name || '';
+      div.dataset.url = img.url;
+      div.style.backgroundImage = `url("${img.url}")`;
+
+      // Valida se a imagem carrega; se não, remove o item
+      const test = new Image();
+      test.onerror = () => div.remove();
+      test.src = img.url;
+
+      grid.appendChild(div);
+    });
+
+    section.appendChild(grid);
+    gallery.appendChild(section);
+  });
+}
+
+// Delegação de clique (um listener só, imune a recriações)
+if (gallery) {
+  gallery.addEventListener('click', (e) => {
+    const item = e.target.closest('.gallery-item');
+    if (!item) return;
+    const url = item.dataset.url;
+    if (url) loadGalleryImage(url);
+  });
+}
+
+function loadGalleryImage(url) {
+  const img = new Image();
+  img.onload = () => {
+    imageUrl = url;
+    imageAspect = img.naturalWidth / img.naturalHeight;
+    startGame();
+  };
+  img.onerror = () => alert('Não foi possível carregar esta imagem.');
+  img.src = url;
+}
+
+// ============================================================
+// Carregar foto do usuário
+// ============================================================
 fileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -68,20 +230,20 @@ fileInput.addEventListener('change', (e) => {
   img.src = URL.createObjectURL(file);
 });
 
-// ===== Iniciar jogo =====
+// ============================================================
+// Iniciar jogo
+// ============================================================
 function startGame() {
   intro.classList.add('hidden');
   gameArea.classList.remove('hidden');
   gameActive = true;
   resetStats();
   buildBoard();
-  shuffle();        // shuffle chama render() internamente
+  shuffle();
   startTimer();
 
-  // Re-renderiza após o layout estabilizar (garante dimensões corretas)
   requestAnimationFrame(() => {
     applyAspect();
-    // segundo frame para garantir que aspectRatio aplicou
     requestAnimationFrame(() => render());
   });
 }
@@ -114,9 +276,10 @@ function formatTime(s) {
   return `${m}:${sec}`;
 }
 
-// ===== Construir tabuleiro =====
+// ============================================================
+// Construir tabuleiro
+// ============================================================
 function buildBoard() {
-  // 🔑 define grade dinâmica
   board.style.gridTemplateColumns = `repeat(${SIZE}, 1fr)`;
   board.style.gridTemplateRows    = `repeat(${SIZE}, 1fr)`;
 
@@ -183,7 +346,9 @@ function handleTouchEnd(e) {
   touchFrom = null;
 }
 
-// ===== Render (px) =====
+// ============================================================
+// Render (px)
+// ============================================================
 function render() {
   if (!imageUrl) return;
 
@@ -208,9 +373,13 @@ function render() {
     el.classList.toggle('selected', i === selectedIndex);
     el.classList.toggle('placed', pieceId === i);
   });
+
+  applyStickEffect();
 }
 
-// ===== Interação =====
+// ============================================================
+// Interação
+// ============================================================
 function onTileClick(index) {
   if (!gameActive) return;
   if (selectedIndex === null) {
@@ -224,11 +393,9 @@ function onTileClick(index) {
   }
 }
 
-
 function swapTiles(a, b) {
   if (a === b) return;
 
-  // Guarda quem estava correto ANTES da troca
   const wasCorrect = tiles.map((v, i) => v === i);
 
   [tiles[a], tiles[b]] = [tiles[b], tiles[a]];
@@ -248,110 +415,49 @@ function updateCorrectness(wasCorrect) {
   [...board.children].forEach((el, i) => {
     const isCorrect = tiles[i] === i;
 
-    // Brilho: só se ficou correto agora (não estava antes)
     if (isCorrect && !wasCorrect[i]) {
       el.classList.add('correct');
       setTimeout(() => el.classList.remove('correct'), 600);
     }
 
-    // "Grudar": marca peças corretas
     el.classList.toggle('placed', isCorrect);
   });
+
+  applyStickEffect();
 }
+
 // ============================================================
-// 🔊 SOM (Web Audio API — sem arquivo externo)
+// Efeito de "grudar" peças corretas vizinhas (via JS)
 // ============================================================
-function initAudio() {
-  if (audioCtx) return audioCtx;
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  } catch (_) { audioCtx = null; }
-  return audioCtx;
-}
+function applyStickEffect() {
+  const gap = 2;
 
-function playCardSound() {
-  if (!soundOn) return;
-  const ctx = initAudio();
-  if (!ctx) return;
-  if (ctx.state === 'suspended') ctx.resume();
+  [...board.children].forEach((el, i) => {
+    el.style.marginRight  = '';
+    el.style.marginBottom = '';
+    el.style.zIndex       = '';
 
-  const now = ctx.currentTime;
+    if (tiles[i] !== i) return;
 
-  // Ruído curto (slap da carta)
-  const bufferSize = Math.floor(ctx.sampleRate * 0.08);
-  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
-  }
-  const noise = ctx.createBufferSource();
-  noise.buffer = buffer;
+    const row = Math.floor(i / SIZE);
+    const col = i % SIZE;
 
-  const noiseFilter = ctx.createBiquadFilter();
-  noiseFilter.type = 'highpass';
-  noiseFilter.frequency.value = 1200;
+    const rightIdx = i + 1;
+    const hasRight = col < SIZE - 1 && tiles[rightIdx] === rightIdx;
 
-  const noiseGain = ctx.createGain();
-  noiseGain.gain.setValueAtTime(0.25, now);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    const belowIdx = i + SIZE;
+    const hasBelow = row < SIZE - 1 && tiles[belowIdx] === belowIdx;
 
-  noise.connect(noiseFilter).connect(noiseGain).connect(ctx.destination);
-  noise.start(now);
-  noise.stop(now + 0.08);
-
-  // Clique tonal curto
-  const osc = ctx.createOscillator();
-  osc.type = 'triangle';
-  osc.frequency.setValueAtTime(900, now);
-  osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
-
-  const oscGain = ctx.createGain();
-  oscGain.gain.setValueAtTime(0.08, now);
-  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-
-  osc.connect(oscGain).connect(ctx.destination);
-  osc.start(now);
-  osc.stop(now + 0.05);
-}
-
-function playVictorySound() {
-  if (!soundOn) return;
-  const ctx = initAudio();
-  if (!ctx) return;
-  if (ctx.state === 'suspended') ctx.resume();
-
-  const now = ctx.currentTime;
-  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
-  notes.forEach((freq, i) => {
-    const t = now + i * 0.12;
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.15, t + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-    osc.connect(g).connect(ctx.destination);
-    osc.start(t);
-    osc.stop(t + 0.3);
+    if (hasRight) {
+      el.style.marginRight = `-${gap}px`;
+      el.style.zIndex = '2';
+    }
+    if (hasBelow) {
+      el.style.marginBottom = `-${gap}px`;
+      el.style.zIndex = '2';
+    }
   });
 }
-
-// Botão de mute
-if (soundToggle) {
-  soundToggle.addEventListener('click', () => {
-    soundOn = !soundOn;
-    soundToggle.textContent = soundOn ? '🔊' : '🔇';
-    soundToggle.classList.toggle('muted', !soundOn);
-    if (soundOn) playCardSound();
-  });
-}
-
-// "Desbloqueia" o áudio no primeiro clique/toque em qualquer lugar
-document.addEventListener('pointerdown', function unlock() {
-  initAudio();
-  document.removeEventListener('pointerdown', unlock);
-}, { once: true });
 
 function shuffle() {
   do {
@@ -368,7 +474,9 @@ function isSolved() {
   return tiles.every((v, i) => v === i);
 }
 
-// ===== Vitória =====
+// ============================================================
+// Vitória
+// ============================================================
 function onWin() {
   gameActive = false;
   stopTimer();
@@ -376,7 +484,7 @@ function onWin() {
   winMovesEl.textContent = moves;
   winModal.classList.remove('hidden');
   launchConfetti();
-  playVictorySound(); 
+  playVictorySound();
 
   const key = `best_${SIZE}x${SIZE}`;
   const best = parseInt(localStorage.getItem(key) || '999999', 10);
@@ -401,7 +509,9 @@ function launchConfetti() {
   }
 }
 
-// ===== Botões =====
+// ============================================================
+// Botões
+// ============================================================
 shuffleBtn.addEventListener('click', () => {
   if (!gameActive) return;
   shuffle();
@@ -456,72 +566,14 @@ window.addEventListener('resize', () => {
   if (gameActive) render();
 });
 
-// ===== Galeria =====
-function buildGallery() {
-  if (!gallery) return;
-  if (typeof GALLERY_CATEGORIES === 'undefined') return;
-  gallery.innerHTML = '';
-
-  Object.entries(GALLERY_CATEGORIES).forEach(([key, cat]) => {
-    if (!cat || !Array.isArray(cat.images) || cat.images.length === 0) return;
-
-    const section = document.createElement('div');
-    section.className = 'gallery-category';
-
-    const title = document.createElement('h3');
-    title.className = 'gallery-title';
-    title.textContent = cat.title || key;
-    section.appendChild(title);
-
-    const grid = document.createElement('div');
-    grid.className = 'gallery-grid';
-
-    cat.images.forEach(img => {
-      if (!img || !img.url) return;
-      const div = document.createElement('div');
-      div.className = 'gallery-item';
-      div.dataset.name = img.name || '';
-      div.dataset.url = img.url;
-      div.style.backgroundImage = `url("${img.url}")`;
-
-      // Valida se a imagem realmente carrega; se não, remove o item
-      const test = new Image();
-      test.onerror = () => div.remove();
-      test.src = img.url;
-
-      grid.appendChild(div);
-    });
-
-    section.appendChild(grid);
-    gallery.appendChild(section);
-  });
-}
-
-// Delegação de clique (um listener só, imune a recriações)
-if (gallery) {
-  gallery.addEventListener('click', (e) => {
-    const item = e.target.closest('.gallery-item');
-    if (!item) return;
-    const url = item.dataset.url;
-    if (url) loadGalleryImage(url);
-  });
-}
-
-function loadGalleryImage(url) {
-  const img = new Image();
-  img.onload = () => {
-    imageUrl = url;
-    imageAspect = img.naturalWidth / img.naturalHeight;
-    startGame();
-  };
-  img.onerror = () => alert('Não foi possível carregar esta imagem.');
-  img.src = url;
-}
-
-// Chama no init
+// ============================================================
+// Init
+// ============================================================
 buildGallery();
 
-// ===== PWA =====
+// ============================================================
+// PWA
+// ============================================================
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
