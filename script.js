@@ -20,6 +20,7 @@ const confettiBox = document.getElementById('confetti');
 const shareBtn    = document.getElementById('shareBtn');
 const playAgainBtn= document.getElementById('playAgainBtn');
 const newPhotoBtn = document.getElementById('newPhotoBtn');
+const gallery     = document.getElementById('gallery');
 
 // ===== Estado =====
 let SIZE = 4;
@@ -330,6 +331,65 @@ shareBtn.addEventListener('click', async () => {
 window.addEventListener('resize', () => {
   if (gameActive) render();
 });
+
+// ===== Galeria =====
+function buildGallery() {
+  if (!gallery) return;
+  if (typeof GALLERY_CATEGORIES === 'undefined') return;
+  gallery.innerHTML = '';
+
+  Object.entries(GALLERY_CATEGORIES).forEach(([key, cat]) => {
+    if (!cat || !Array.isArray(cat.images) || cat.images.length === 0) return;
+
+    const section = document.createElement('div');
+    section.className = 'gallery-category';
+
+    const title = document.createElement('h3');
+    title.className = 'gallery-title';
+    title.textContent = cat.title || key;
+    section.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'gallery-grid';
+
+    cat.images.forEach(img => {
+      if (!img || !img.url) return;
+      const div = document.createElement('div');
+      div.className = 'gallery-item';
+      div.dataset.name = img.name || '';
+      div.dataset.url = img.url;
+      div.style.backgroundImage = `url("${img.url}")`;
+      grid.appendChild(div);
+    });
+
+    section.appendChild(grid);
+    gallery.appendChild(section);
+  });
+}
+
+// Delegação de clique (um listener só, imune a recriações)
+if (gallery) {
+  gallery.addEventListener('click', (e) => {
+    const item = e.target.closest('.gallery-item');
+    if (!item) return;
+    const url = item.dataset.url;
+    if (url) loadGalleryImage(url);
+  });
+}
+
+function loadGalleryImage(url) {
+  const img = new Image();
+  img.onload = () => {
+    imageUrl = url;
+    imageAspect = img.naturalWidth / img.naturalHeight;
+    startGame();
+  };
+  img.onerror = () => alert('Não foi possível carregar esta imagem.');
+  img.src = url;
+}
+
+// Chama no init
+buildGallery();
 
 // ===== PWA =====
 if ('serviceWorker' in navigator) {

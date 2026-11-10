@@ -230,3 +230,77 @@ button:active { transform: scale(0.96); }
 @media (display-mode: standalone) {
   body { padding-top: env(safe-area-inset-top, 16px); }
 }
+
+/* ===== Divisor "ou" ===== */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  color: #888;
+  font-size: 0.85rem;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.15);
+}
+
+/* ===== Galeria por categorias ===== */
+.gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.gallery-category {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gallery-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ddd;
+  text-align: left;
+  padding-left: 4px;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.gallery-item {
+  aspect-ratio: 3 / 4;
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s, border-color 0.15s;
+  position: relative;
+  overflow: hidden;
+  background-color: #2a2a3e;
+}
+.gallery-item:hover {
+  transform: scale(1.04);
+  border-color: #7c5cff;
+}
+.gallery-item::after {
+  content: attr(data-name);
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 6px;
+  font-size: 0.7rem;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  color: #fff;
+  text-align: center;
+}
