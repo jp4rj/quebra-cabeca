@@ -290,7 +290,6 @@ button:active { transform: scale(0.96); }
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -303,7 +302,10 @@ button:active { transform: scale(0.96); }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .modal-content {
-  background: transparent;
+  background-color: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
   padding: 28px;
   border-radius: 16px;
   max-width: 360px;
@@ -325,7 +327,6 @@ button:active { transform: scale(0.96); }
 .modal-content h2 {
   font-size: 2rem;
   margin: 0 0 8px;
-  background: linear-gradient(90deg, #ffd166, #ff6b9d, #7c5cff);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

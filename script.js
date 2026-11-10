@@ -143,9 +143,6 @@ document.querySelectorAll('.size-btn').forEach(btn => {
   });
 });
 
-// ============================================================
-// Galeria
-// ============================================================
 function buildGallery() {
   if (!gallery) return;
   if (typeof GALLERY_CATEGORIES === 'undefined') return;
@@ -156,11 +153,19 @@ function buildGallery() {
 
     const section = document.createElement('div');
     section.className = 'gallery-category';
+    section.dataset.category = key;
 
     const title = document.createElement('h3');
     title.className = 'gallery-title';
-    title.textContent = cat.title || key;
-    section.appendChild(title);
+    title.innerHTML = `
+      <span>${cat.title || key}
+        <span class="gallery-count">(${cat.images.length})</span>
+      </span>
+    `;
+        section.addEventListener('click', (e) => {
+      if (e.target.closest('.gallery-item')) return; // clique na miniatura não fecha o cartão
+      toggleCategory(section);
+    });
 
     const grid = document.createElement('div');
     grid.className = 'gallery-grid';
@@ -184,6 +189,16 @@ function buildGallery() {
     section.appendChild(grid);
     gallery.appendChild(section);
   });
+}
+
+function toggleCategory(section) {
+  const isOpen = section.classList.contains('open');
+
+  // Fecha todas
+  gallery.querySelectorAll('.gallery-category.open').forEach(s => s.classList.remove('open'));
+
+  // Abre a clicada (se não estava aberta)
+  if (!isOpen) section.classList.add('open');
 }
 
 // Delegação de clique (um listener só, imune a recriações)

@@ -1,4 +1,4 @@
-const CACHE = 'quebra-cabeca-v204';
+const CACHE = 'quebra-cabeca-v208';
 const ASSETS = [
   './',
   './index.html',
