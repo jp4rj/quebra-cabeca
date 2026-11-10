@@ -1,6 +1,6 @@
 // ============================================================
 // Quebra-Cabeça — com som, brilho dourado, peças que grudam,
-// modal transparente, galeria local e PWA.
+// modal transparente, galeria em acordeão e PWA.
 // ============================================================
 
 const fileInput   = document.getElementById('fileInput');
@@ -143,6 +143,9 @@ document.querySelectorAll('.size-btn').forEach(btn => {
   });
 });
 
+// ============================================================
+// Galeria em acordeão
+// ============================================================
 function buildGallery() {
   if (!gallery) return;
   if (typeof GALLERY_CATEGORIES === 'undefined') return;
@@ -162,8 +165,10 @@ function buildGallery() {
         <span class="gallery-count">(${cat.images.length})</span>
       </span>
     `;
-        section.addEventListener('click', (e) => {
-      if (e.target.closest('.gallery-item')) return; // clique na miniatura não fecha o cartão
+    section.appendChild(title);
+
+    section.addEventListener('click', (e) => {
+      if (e.target.closest('.gallery-item')) return;
       toggleCategory(section);
     });
 
@@ -201,7 +206,7 @@ function toggleCategory(section) {
   if (!isOpen) section.classList.add('open');
 }
 
-// Delegação de clique (um listener só, imune a recriações)
+// Delegação de clique nas miniaturas
 if (gallery) {
   gallery.addEventListener('click', (e) => {
     const item = e.target.closest('.gallery-item');
