@@ -21,6 +21,7 @@ const shareBtn    = document.getElementById('shareBtn');
 const playAgainBtn= document.getElementById('playAgainBtn');
 const newPhotoBtn = document.getElementById('newPhotoBtn');
 const gallery     = document.getElementById('gallery');
+const soundToggle = document.getElementById('soundToggle');
 
 // ===== Estado =====
 let SIZE = 4;
@@ -34,6 +35,8 @@ let moves = 0;
 let timer = null;
 let seconds = 0;
 let gameActive = false;
+let soundOn = true;
+let audioCtx = null;
 
 // ===== Escolha de tamanho =====
 document.querySelectorAll('.size-btn').forEach(btn => {
@@ -203,6 +206,7 @@ function render() {
     el.style.backgroundSize = `${tileW * SIZE}px ${tileH * SIZE}px`;
     el.style.backgroundPosition = `${-col * tileW}px ${-row * tileH}px`;
     el.classList.toggle('selected', i === selectedIndex);
+    el.classList.toggle('placed', pieceId === i);
   });
 }
 
@@ -220,15 +224,134 @@ function onTileClick(index) {
   }
 }
 
+
 function swapTiles(a, b) {
   if (a === b) return;
+
+  // Guarda quem estava correto ANTES da troca
+  const wasCorrect = tiles.map((v, i) => v === i);
+
   [tiles[a], tiles[b]] = [tiles[b], tiles[a]];
   selectedIndex = null;
   moves++;
   movesEl.textContent = moves;
+
+  playCardSound();
+
   render();
+  updateCorrectness(wasCorrect);
+
   if (isSolved()) onWin();
 }
+
+function updateCorrectness(wasCorrect) {
+  [...board.children].forEach((el, i) => {
+    const isCorrect = tiles[i] === i;
+
+    // Brilho: só se ficou correto agora (não estava antes)
+    if (isCorrect && !wasCorrect[i]) {
+      el.classList.add('correct');
+      setTimeout(() => el.classList.remove('correct'), 600);
+    }
+
+    // "Grudar": marca peças corretas
+    el.classList.toggle('placed', isCorrect);
+  });
+}
+// ============================================================
+// 🔊 SOM (Web Audio API — sem arquivo externo)
+// ============================================================
+function initAudio() {
+  if (audioCtx) return audioCtx;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (_) { audioCtx = null; }
+  return audioCtx;
+}
+
+function playCardSound() {
+  if (!soundOn) return;
+  const ctx = initAudio();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const now = ctx.currentTime;
+
+  // Ruído curto (slap da carta)
+  const bufferSize = Math.floor(ctx.sampleRate * 0.08);
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+
+  const noiseFilter = ctx.createBiquadFilter();
+  noiseFilter.type = 'highpass';
+  noiseFilter.frequency.value = 1200;
+
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(0.25, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+  noise.connect(noiseFilter).connect(noiseGain).connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + 0.08);
+
+  // Clique tonal curto
+  const osc = ctx.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(900, now);
+  osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+
+  const oscGain = ctx.createGain();
+  oscGain.gain.setValueAtTime(0.08, now);
+  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+  osc.connect(oscGain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.05);
+}
+
+function playVictorySound() {
+  if (!soundOn) return;
+  const ctx = initAudio();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const now = ctx.currentTime;
+  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+  notes.forEach((freq, i) => {
+    const t = now + i * 0.12;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.15, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.3);
+  });
+}
+
+// Botão de mute
+if (soundToggle) {
+  soundToggle.addEventListener('click', () => {
+    soundOn = !soundOn;
+    soundToggle.textContent = soundOn ? '🔊' : '🔇';
+    soundToggle.classList.toggle('muted', !soundOn);
+    if (soundOn) playCardSound();
+  });
+}
+
+// "Desbloqueia" o áudio no primeiro clique/toque em qualquer lugar
+document.addEventListener('pointerdown', function unlock() {
+  initAudio();
+  document.removeEventListener('pointerdown', unlock);
+}, { once: true });
 
 function shuffle() {
   do {
@@ -253,6 +376,7 @@ function onWin() {
   winMovesEl.textContent = moves;
   winModal.classList.remove('hidden');
   launchConfetti();
+  playVictorySound(); 
 
   const key = `best_${SIZE}x${SIZE}`;
   const best = parseInt(localStorage.getItem(key) || '999999', 10);
@@ -359,6 +483,12 @@ function buildGallery() {
       div.dataset.name = img.name || '';
       div.dataset.url = img.url;
       div.style.backgroundImage = `url("${img.url}")`;
+
+      // Valida se a imagem realmente carrega; se não, remove o item
+      const test = new Image();
+      test.onerror = () => div.remove();
+      test.src = img.url;
+
       grid.appendChild(div);
     });
 
