@@ -87,12 +87,12 @@ h1 { margin: 0 0 4px; font-size: 1.6rem; }
 }
 
 /* ============================================================
-   Galeria por categorias
+   Galeria por categorias (acordeão de cartões)
    ============================================================ */
 .gallery {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
   width: 100%;
   margin-top: 8px;
 }
@@ -101,6 +101,17 @@ h1 { margin: 0 0 4px; font-size: 1.6rem; }
   display: flex;
   flex-direction: column;
   gap: 10px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.gallery-category.open {
+  grid-column: 1 / -1;   /* ocupa a linha inteira quando aberto */
+  background: rgba(124, 92, 255, 0.08);
+  border-color: rgba(124, 92, 255, 0.35);
 }
 
 .gallery-title {
@@ -109,13 +120,50 @@ h1 { margin: 0 0 4px; font-size: 1.6rem; }
   font-weight: 600;
   color: #ddd;
   text-align: left;
-  padding-left: 4px;
+  padding-left: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
+.gallery-title::after {
+  content: '▸';
+  font-size: 1.1rem;
+  color: #7c5cff;
+  transition: transform 0.25s;
+}
+
+.gallery-category.open .gallery-title::after {
+  transform: rotate(90deg);
+}
+
+.gallery-count {
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+/* O grid de miniaturas só aparece quando a categoria está aberta */
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+
+  /* acordeão: anima a altura */
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.35s ease, opacity 0.25s ease, margin-top 0.25s ease;
+}
+
+.gallery-category.open .gallery-grid {
+  max-height: 2000px;   /* alto o suficiente para caber todas as miniaturas */
+  opacity: 1;
+  margin-top: 4px;
 }
 
 .gallery-item {
@@ -130,10 +178,12 @@ h1 { margin: 0 0 4px; font-size: 1.6rem; }
   overflow: hidden;
   background-color: #2a2a3e;
 }
+
 .gallery-item:hover {
   transform: scale(1.04);
   border-color: #7c5cff;
 }
+
 .gallery-item::after {
   content: attr(data-name);
   position: absolute;
@@ -143,6 +193,11 @@ h1 { margin: 0 0 4px; font-size: 1.6rem; }
   background: linear-gradient(transparent, rgba(0,0,0,0.85));
   color: #fff;
   text-align: center;
+}
+
+/* Mobile: 1 coluna na grade geral (categorias empilhadas verticalmente) */
+@media (max-width: 480px) {
+  .gallery { grid-template-columns: 1fr; }
 }
 
 /* ============================================================
@@ -380,4 +435,19 @@ button:active { transform: scale(0.96); }
    ============================================================ */
 @media (display-mode: standalone) {
   body { padding-top: env(safe-area-inset-top, 16px); }
+}
+
+
+/* ===== ACORDEÃO — regra de emergência (vence cache e conflitos) ===== */
+.gallery-grid {
+  max-height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  transition: max-height 0.35s ease, opacity 0.25s ease, margin-top 0.25s ease !important;
+}
+
+.gallery-category.open .gallery-grid {
+  max-height: 2000px !important;
+  opacity: 1 !important;
+  margin-top: 4px !important;
 }
