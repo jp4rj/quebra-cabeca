@@ -1,5 +1,6 @@
 /* ============================================================
-   Quebra-Cabeça — estilo consolidado (modal transparente corrigido)
+   Quebra-Cabeça — estilo consolidado
+   Modal transparente + título arco-íris animado + emojis festivos
    ============================================================ */
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -373,14 +374,19 @@ button:active { transform: scale(0.96); }
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* TÍTULO — gradiente arco-íris animado, bem festivo */
+/* ============================================================
+   TÍTULO — gradiente arco-íris animado + emojis festivos
+   ============================================================ */
 .modal-content h2 {
   font-size: 2.2rem;
   margin: 0 0 12px;
   font-weight: 800;
   letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 
-  /* gradiente arco-íris (vermelho → laranja → amarelo → verde → azul → roxo → rosa) */
   background: linear-gradient(
     90deg,
     #ff3b3b,
@@ -397,19 +403,47 @@ button:active { transform: scale(0.96); }
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-
-  /* animação: o gradiente "escorrega" pelas letras */
   animation: rainbowText 3s linear infinite;
 
-  /* sombra dupla escura para destacar sobre a foto */
   filter:
     drop-shadow(0 2px 3px rgba(0,0,0,0.95))
     drop-shadow(0 0 10px rgba(0,0,0,0.85));
 }
 
+/* Emojis das pontas: não herdam o gradiente (ficam coloridos por padrão) */
+.modal-content h2 .emoji {
+  -webkit-text-fill-color: initial;
+  color: initial;
+  font-size: 1.2em;
+  display: inline-block;
+}
+
+.modal-content h2 .emoji-left {
+  animation: emojiDance 1.4s ease-in-out infinite;
+}
+.modal-content h2 .emoji-right {
+  animation: emojiDance 1.4s ease-in-out infinite;
+  animation-delay: 0.7s;
+}
+
+@keyframes emojiDance {
+  0%, 100% { transform: rotate(-12deg) scale(1); }
+  50%      { transform: rotate(12deg)  scale(1.2); }
+}
+
 @keyframes rainbowText {
   0%   { background-position:   0% 50%; }
   100% { background-position: 300% 50%; }
+}
+
+.modal-content > p {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow:
+    0 2px 6px rgba(0,0,0,0.95),
+    0 0 12px rgba(0,0,0,0.85);
 }
 
 /* Stats do modal: mesmo estilo translúcido que os botões */
