@@ -9,13 +9,14 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>🧩 Quebra-Cabeça</h1>
-    <p class="subtitle">Escolha uma foto e remonte o quebra-cabeça!</p>
-  </header>
 
   <!-- Tela inicial -->
   <section id="intro">
+    <header>
+      <h1>🧩 Quebra-Cabeça</h1>
+      <p class="subtitle">Escolha uma foto e remonte o quebra-cabeça!</p>
+    </header>
+
     <div class="size-picker">
       <label>Tamanho:</label>
       <div class="size-buttons">
@@ -33,7 +34,7 @@
     <div id="gallery" class="gallery"></div>
   </section>
 
-  <!-- Área do jogo -->
+  <!-- Área do jogo (sem título nem subtítulo — mais espaço) -->
   <section id="gameArea" class="hidden">
     <div class="stats">
       <div class="stat">
@@ -60,7 +61,7 @@
     </div>
   </section>
 
-  <!-- Modal de vitória -->
+  <!-- Modal de vitória (só stats + Jogar de novo) -->
   <div id="winModal" class="modal hidden">
     <div class="modal-content">
       <div class="confetti-container" id="confetti"></div>
@@ -71,15 +72,13 @@
         <p>👆 Movimentos: <strong id="winMoves">0</strong></p>
       </div>
       <div class="win-actions">
-        <button id="shareBtn">📤 Compartilhar</button>
         <button id="playAgainBtn">🔁 Jogar de novo</button>
-        <button id="newPhotoBtn">🖼️ Nova foto</button>
       </div>
     </div>
   </div>
 
   <script src="images.js"></script>
   <script src="script.js"></script>
-  
+
 </body>
 </html>
