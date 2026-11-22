@@ -20,9 +20,7 @@ const winModal    = document.getElementById('winModal');
 const winTimeEl   = document.getElementById('winTime');
 const winMovesEl  = document.getElementById('winMoves');
 const confettiBox = document.getElementById('confetti');
-const shareBtn    = document.getElementById('shareBtn');
 const playAgainBtn= document.getElementById('playAgainBtn');
-const newPhotoBtn = document.getElementById('newPhotoBtn');
 
 // ===== Estado =====
 let SIZE = 4;
@@ -183,7 +181,6 @@ function buildGallery() {
       div.dataset.url = img.url;
       div.style.backgroundImage = `url("${img.url}")`;
 
-      // Valida se a imagem carrega; se não, remove o item
       const test = new Image();
       test.onerror = () => div.remove();
       test.src = img.url;
@@ -198,15 +195,10 @@ function buildGallery() {
 
 function toggleCategory(section) {
   const isOpen = section.classList.contains('open');
-
-  // Fecha todas
   gallery.querySelectorAll('.gallery-category.open').forEach(s => s.classList.remove('open'));
-
-  // Abre a clicada (se não estava aberta)
   if (!isOpen) section.classList.add('open');
 }
 
-// Delegação de clique nas miniaturas
 if (gallery) {
   gallery.addEventListener('click', (e) => {
     const item = e.target.closest('.gallery-item');
@@ -447,7 +439,7 @@ function updateCorrectness(wasCorrect) {
 }
 
 // ============================================================
-// Efeito de "grudar" peças corretas vizinhas (via JS)
+// Efeito de "grudar" peças corretas vizinhas
 // ============================================================
 function applyStickEffect() {
   const gap = 2;
@@ -562,24 +554,6 @@ peekBtn.addEventListener('click', () => {
 playAgainBtn.addEventListener('click', () => {
   winModal.classList.add('hidden');
   startGame();
-});
-
-newPhotoBtn.addEventListener('click', () => {
-  winModal.classList.add('hidden');
-  resetBtn.click();
-});
-
-shareBtn.addEventListener('click', async () => {
-  const text = `🧩 Resolvi um quebra-cabeça ${SIZE}×${SIZE} em ${formatTime(seconds)} com ${moves} movimentos!`;
-  if (navigator.share) {
-    try { await navigator.share({ title: 'Quebra-Cabeça', text, url: location.href }); } catch (_) {}
-  } else {
-    try {
-      await navigator.clipboard.writeText(text + ' ' + location.href);
-      shareBtn.textContent = '✅ Copiado!';
-      setTimeout(() => (shareBtn.textContent = '📤 Compartilhar'), 1500);
-    } catch (_) { alert(text); }
-  }
 });
 
 window.addEventListener('resize', () => {
