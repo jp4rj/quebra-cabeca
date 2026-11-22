@@ -536,6 +536,7 @@ resetBtn.addEventListener('click', () => {
   gameActive = false;
   gameArea.classList.add('hidden');
   intro.classList.remove('hidden');
+  winModal.classList.add('hidden');   // ← FECHA O MODAL também
   fileInput.value = '';
   imageUrl = null;
   tiles = [];
