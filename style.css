@@ -21,6 +21,10 @@ header { margin-bottom: 16px; }
 h1 { margin: 0 0 4px; font-size: 1.6rem; }
 .subtitle { margin: 0; color: #aaa; font-size: 0.9rem; }
 
+/* Subtítulo só aparece na tela inicial (intro).
+   Na área do jogo ele some, liberando espaço. */
+#gameArea .subtitle { display: none; }
+
 .hidden { display: none !important; }
 
 /* ============================================================
@@ -338,8 +342,8 @@ button:active { transform: scale(0.96); }
   z-index: 100;
   animation: fadeIn 0.3s;
   padding: 16px;
-  background: transparent;      /* nada de escurecer a foto */
-  pointer-events: none;         /* deixa clicar através do overlay vazio */
+  background: transparent;
+  pointer-events: none;
 }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -358,7 +362,6 @@ button:active { transform: scale(0.96); }
   animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   color: #fff;
   pointer-events: auto;
-  /* halo escuro atrás do texto para legibilidade sobre qualquer foto */
   text-shadow:
     0 2px 6px rgba(0,0,0,0.95),
     0 0 12px rgba(0,0,0,0.85),
@@ -370,21 +373,17 @@ button:active { transform: scale(0.96); }
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* TÍTULO — corrigido: gradiente restaurado (sem ficar transparente) */
+/* TÍTULO — gradiente restaurado */
 .modal-content h2 {
   font-size: 2.2rem;
   margin: 0 0 12px;
   font-weight: 800;
   letter-spacing: 0.5px;
-
-  /* gradiente nas letras */
   background: linear-gradient(90deg, #ffd166, #ff6b9d, #7c5cff);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-
-  /* sombra forte pra destacar sobre a foto */
   filter:
     drop-shadow(0 2px 3px rgba(0,0,0,0.95))
     drop-shadow(0 0 10px rgba(0,0,0,0.85));
@@ -400,7 +399,7 @@ button:active { transform: scale(0.96); }
     0 0 12px rgba(0,0,0,0.85);
 }
 
-/* Stats do modal: só um leve borrão escuro, sem bloco preto */
+/* Stats do modal: mesmo estilo translúcido que os botões */
 .win-stats {
   margin: 16px 0;
   padding: 12px 16px;
@@ -417,6 +416,7 @@ button:active { transform: scale(0.96); }
   text-shadow: 0 1px 4px rgba(0,0,0,0.9);
 }
 
+/* Ações do modal: MESMO fundo translúcido do win-stats */
 .win-actions {
   display: flex;
   flex-direction: column;
@@ -425,12 +425,22 @@ button:active { transform: scale(0.96); }
 }
 .win-actions button {
   width: 100%;
-  /* botões sólidos para não sumirem sobre a foto */
-  background: rgba(124, 92, 255, 0.95);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  padding: 12px 18px;
+  background: rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  box-shadow: none;
+  transition: background 0.15s, border-color 0.15s;
 }
 .win-actions button:hover {
-  background: #8a6dff;
+  background: rgba(124, 92, 255, 0.35);
+  border-color: rgba(124, 92, 255, 0.6);
 }
 
 /* ============================================================
